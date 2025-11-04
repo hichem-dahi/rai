@@ -17,8 +17,7 @@ export function getDb() {
 // Create a table to store embeddings
 export async function migrate(db: PGlite) {
   await db.exec("CREATE EXTENSION IF NOT EXISTS vector;");
-  await db.exec("DROP TABLE IF EXISTS code_chunks;");
-  await db.exec("DROP TABLE IF EXISTS files;");
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS files (
       filepath TEXT PRIMARY KEY,

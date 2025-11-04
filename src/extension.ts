@@ -3,7 +3,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 
-import { highlightSimilarLines, SimilarityTreeDataProvider } from "./ui/ui";
+import { highlightSimilarLines, SimilarityTreeDataProvider } from "./ui/ui.js";
 
 import {
   calculateSimilarity,
@@ -13,11 +13,11 @@ import {
   insertEmbeddings,
   migrate,
   upsertFile,
-} from "./pglite/pglite";
+} from "./pglite/pglite.js";
 import { showOutput } from "./ui/ui.js";
-import { getFileModifiedDate, splitCodeIntoChunks } from "./utils/utils";
-import { generateEmbeddings } from "./model/model";
-import { Chunk, File, SimilarityResult } from "./types/types";
+import { getFileModifiedDate, splitCodeIntoChunks } from "./utils/utils.js";
+import { generateEmbeddings } from "./model/model.js";
+import { Chunk, File, SimilarityResult } from "./types/types.js";
 
 // Define the path to the database file
 const db = getDb();

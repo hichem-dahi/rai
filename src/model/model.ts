@@ -1,18 +1,27 @@
-const hg = require("@huggingface/transformers");
-import { FeatureExtractionPipeline } from "@huggingface/transformers";
-import { Chunk } from "../types/types";
+import type { Chunk } from "../types/types.js";
 
-// Create a singleton model instance outside your functions
+type FeatureExtractionPipeline =
+  import("@huggingface/transformers").FeatureExtractionPipeline;
+
 let pipelineInstance: FeatureExtractionPipeline | null = null;
+let hg: any = null; // Cache the imported module too
 
-// Function to get or create the pipeline
 export async function getFeatureExtractionPipeline() {
+  if (!hg) {
+    // Dynamically import Hugging Face transformers
+    hg = await import("@huggingface/transformers");
+  }
+
   if (!pipelineInstance) {
+    console.log("🔍 Loading model (Xenova/all-MiniLM-L6-v2)...");
     pipelineInstance = (await hg.pipeline(
       "feature-extraction",
       "Xenova/all-MiniLM-L6-v2"
     )) as FeatureExtractionPipeline;
+
+    console.log("✅ Model loaded successfully");
   }
+
   return pipelineInstance;
 }
 
@@ -20,17 +29,19 @@ export async function featureExtraction(texts: string[]) {
   try {
     const pipe = await getFeatureExtractionPipeline();
 
-    // Process all texts in parallel
-    const embeddingPromises = texts.map((text) =>
-      pipe(text, {
-        pooling: "mean",
-      })
+    // Process all texts efficiently in parallel
+    const results = await Promise.all(
+      texts.map((text) =>
+        pipe(text, {
+          pooling: "mean",
+          normalize: true, // 💡 helps produce more stable embeddings
+        })
+      )
     );
 
-    const results = await Promise.all(embeddingPromises);
     return results.map((r) => r.data);
   } catch (error) {
-    console.error("Error in featureExtraction:", error);
+    console.error("❌ Error in featureExtraction:", error);
     throw error;
   }
 }
@@ -41,38 +52,39 @@ export async function generateEmbeddings(
   file: string
 ) {
   try {
-    // Get embeddings for all chunks at once (more efficient)
     const embeddings = await featureExtraction(chunks);
 
-    // Create vector objects for each chunk
     const vectors: Chunk[] = chunks.map((chunk, index) => {
-      // Calculate line numbers (adjust based on your actual line tracking)
-      const startLine = index + 1;
+      const startLine = index * chunkSize + 1;
       const endLine = startLine + chunkSize - 1;
 
       return {
         start_line: startLine,
         end_line: endLine,
-        chunk: chunk,
-        file: file,
-        embedding: new Float32Array(embeddings[index]), // Convert to Float32Array
+        chunk,
+        file,
+        embedding: new Float32Array(embeddings[index]),
       };
     });
 
     return vectors;
   } catch (error) {
-    console.error("Error in generateEmbeddings:", error);
+    console.error("❌ Error in generateEmbeddings:", error);
     throw error;
   }
 }
 
-// Add this to your application shutdown logic
 export function cleanup() {
-  if (pipelineInstance) {
-    // If the pipeline has a dispose or cleanup method, call it
-    if (typeof pipelineInstance.dispose === "function") {
-      pipelineInstance.dispose();
+  if (
+    pipelineInstance &&
+    typeof (pipelineInstance as any).dispose === "function"
+  ) {
+    try {
+      (pipelineInstance as any).dispose();
+      console.log("🧹 Model pipeline cleaned up");
+    } catch (e) {
+      console.warn("⚠️ Cleanup failed:", e);
     }
-    pipelineInstance = null;
   }
+  pipelineInstance = null;
 }

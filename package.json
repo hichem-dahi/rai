@@ -1,6 +1,7 @@
 {
   "name": "rai",
   "displayName": "Rai",
+  "publisher": "HichemDahi",
   "description": "Refactor ai",
   "version": "0.0.1",
   "engines": {
@@ -10,6 +11,13 @@
     "Other"
   ],
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hichem-dahi/rai"
+  },
   "contributes": {
     "viewsContainers": {
       "activitybar": [

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 
-import { Chunk, SimilarityResult } from "../types/types";
+import { Chunk, SimilarityResult } from "../types/types.js";
 
 export class SimilarityTreeItem extends vscode.TreeItem {
   constructor(
@@ -93,7 +93,7 @@ export class SimilarityTreeDataProvider
     } else if (element instanceof SimilarityTreeItem) {
       // Show file locations for this similarity
       const { chunks } = element.result;
-      
+
       const children: vscode.TreeItem[] = [];
       for (const chunk of chunks) {
         if (chunk.file && chunk.start_line) {
@@ -138,8 +138,12 @@ export function showOutput(similarityResults: SimilarityResult[]) {
       outputChannel.appendLine(
         `Similarity ${index + 1}: ${Number(result.similarity).toFixed(2)}`
       );
-      outputChannel.appendLine(`Chunk 1:\n${result.chunks[0]?.chunk ?? 'No chunk available'}`);
-      outputChannel.appendLine(`Chunk 2:\n${result.chunks[1]?.chunk ?? 'No chunk available'}`);
+      outputChannel.appendLine(
+        `Chunk 1:\n${result.chunks[0]?.chunk ?? "No chunk available"}`
+      );
+      outputChannel.appendLine(
+        `Chunk 2:\n${result.chunks[1]?.chunk ?? "No chunk available"}`
+      );
       outputChannel.appendLine("---");
     });
   } else {

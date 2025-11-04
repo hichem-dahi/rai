@@ -1,19 +1,13 @@
 {
-	"compilerOptions": {
-		"module": "Node16",
-		"target": "ES2022",
-		"outDir": "out",
-		"lib": [
-			"ES2022"
-		],
-		"sourceMap": true,
-		"rootDir": "src",
-		"strict": true, 
-		"types": ["node", "emscripten", "webassembly-js-api"]
-		  /* enable all strict type-checking options */
-		/* Additional Checks */
-		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
-		// "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
-		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
-	}
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM"],   // 👈 Add DOM here
+    "moduleResolution": "Bundler",
+    "types": ["node"],          // 👈 Ensure Node types are included
+    "skipLibCheck": true,       // 👈 (optional) ignore node_modules type errors
+    "strict": true,
+    "outDir": "dist"
+  },
+  "include": ["src"]
 }
