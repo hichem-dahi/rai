@@ -1,7 +1,7 @@
 import { PGlite, Transaction } from "@electric-sql/pglite";
 import { NodeFS } from "@electric-sql/pglite/nodefs";
 import { vector } from "@electric-sql/pglite/vector";
-import { Chunk, File, SimilarityResultQuery } from "../types/types";
+import { Chunk, File, SimilarityResultQuery } from "../types/types.js";
 
 // Initialize PG Lite
 

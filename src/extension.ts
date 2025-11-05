@@ -3,7 +3,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 
-import { highlightSimilarLines, SimilarityTreeDataProvider } from "./ui/ui.js";
+import { highlightSimilarLines, SimilarityTreeDataProvider } from "./ui/ui";
 
 import {
   calculateSimilarity,
@@ -13,11 +13,11 @@ import {
   insertEmbeddings,
   migrate,
   upsertFile,
-} from "./pglite/pglite.js";
-import { showOutput } from "./ui/ui.js";
-import { getFileModifiedDate, splitCodeIntoChunks } from "./utils/utils.js";
-import { generateEmbeddings } from "./model/model.js";
-import { Chunk, File, SimilarityResult } from "./types/types.js";
+} from "./pglite/pglite";
+import { showOutput } from "./ui/ui";
+import { getFileModifiedDate, splitCodeIntoChunks } from "./utils/utils";
+import { generateEmbeddings } from "./model/model";
+import { Chunk, File, SimilarityResult } from "./types/types";
 
 // Define the path to the database file
 const db = getDb();
@@ -78,16 +78,15 @@ export async function analyzeAllFiles() {
         const code1 = new TextDecoder("utf-8").decode(fileBytes);
 
         await analyzeFile(code1, file.fsPath);
-        console.log(processed);
         processed++;
         progress.report({
           message: `${processed}/${total} files`,
           increment: 50 / 100,
         });
       }
-      console.log("Done !");
 
       const similarities = await getCalculatedSimilarities();
+
       similarityTreeDataProvider.refresh(similarities);
       showOutput(similarities);
       vscode.window.showInformationMessage(
