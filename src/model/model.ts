@@ -1,7 +1,7 @@
 import type { Chunk } from "../types/types.js";
 
 type FeatureExtractionPipeline =
-  import("@huggingface/transformers").FeatureExtractionPipeline;
+  import("@xenova/transformers").FeatureExtractionPipeline;
 
 let pipelineInstance: FeatureExtractionPipeline | null = null;
 let hg: any = null; // Cache the imported module too
@@ -9,17 +9,14 @@ let hg: any = null; // Cache the imported module too
 export async function getFeatureExtractionPipeline() {
   if (!hg) {
     // Dynamically import Hugging Face transformers
-    hg = await import("@huggingface/transformers");
+    hg = await import("@xenova/transformers");
   }
 
   if (!pipelineInstance) {
-    console.log("🔍 Loading model (Xenova/all-MiniLM-L6-v2)...");
     pipelineInstance = (await hg.pipeline(
       "feature-extraction",
       "Xenova/all-MiniLM-L6-v2"
     )) as FeatureExtractionPipeline;
-
-    console.log("✅ Model loaded successfully");
   }
 
   return pipelineInstance;
@@ -55,7 +52,7 @@ export async function generateEmbeddings(
     const embeddings = await featureExtraction(chunks);
 
     const vectors: Chunk[] = chunks.map((chunk, index) => {
-      const startLine = index * chunkSize + 1;
+      const startLine = index + 1;
       const endLine = startLine + chunkSize - 1;
 
       return {
@@ -63,7 +60,7 @@ export async function generateEmbeddings(
         end_line: endLine,
         chunk,
         file,
-        embedding: new Float32Array(embeddings[index]),
+        embedding: embeddings[index],
       };
     });
 
@@ -81,7 +78,6 @@ export function cleanup() {
   ) {
     try {
       (pipelineInstance as any).dispose();
-      console.log("🧹 Model pipeline cleaned up");
     } catch (e) {
       console.warn("⚠️ Cleanup failed:", e);
     }
