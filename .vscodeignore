@@ -1,5 +1,4 @@
 **/.git/**
-**/node_modules/**
 **/test/**
 **/tests/**
 **/docs/**
@@ -9,7 +8,4 @@ src/**
 tsconfig.json
 webpack.config.js
 .token
-# Include only the runtime-needed parts
-!node_modules/@xenova/transformers/dist/**
-!node_modules/@electric-sql/pglite/dist/**
-!node_modules/onnxruntime-node/bin/**
+
