@@ -1,3 +1,4 @@
+import type { DataArray } from "@xenova/transformers";
 import type { Chunk } from "../types/types.js";
 
 type FeatureExtractionPipeline =
@@ -22,25 +23,28 @@ export async function getFeatureExtractionPipeline() {
   return pipelineInstance;
 }
 
-export async function featureExtraction(texts: string[]) {
-  try {
-    const pipe = await getFeatureExtractionPipeline();
+export async function featureExtraction(
+  texts: string[],
+  batchSize: number = 10
+): Promise<DataArray> {
+  const pipe = await getFeatureExtractionPipeline();
+  const results: DataArray = [];
 
-    // Process all texts efficiently in parallel
-    const results = await Promise.all(
-      texts.map((text) =>
-        pipe(text, {
-          pooling: "mean",
-          normalize: true, // 💡 helps produce more stable embeddings
-        })
-      )
+  for (let i = 0; i < texts.length; i += batchSize) {
+    const batch = texts.slice(i, i + batchSize);
+
+    // Process small batch in parallel
+    const batchResults = await Promise.all(
+      batch.map(async (text) => {
+        const output = await pipe(text, { pooling: "mean", normalize: true });
+        return output.data;
+      })
     );
 
-    return results.map((r) => r.data);
-  } catch (error) {
-    console.error("❌ Error in featureExtraction:", error);
-    throw error;
+    results.push(...batchResults);
   }
+
+  return results;
 }
 
 export async function generateEmbeddings(
@@ -50,7 +54,6 @@ export async function generateEmbeddings(
 ) {
   try {
     const embeddings = await featureExtraction(chunks);
-
     const vectors: Chunk[] = chunks.map((chunk, index) => {
       const startLine = index + 1;
       const endLine = startLine + chunkSize - 1;
