@@ -43,6 +43,11 @@
           "command": "rai.analyzeSimilarity",
           "when": "view == similarityExplorer",
           "group": "navigation@1"
+        },
+        {
+          "command": "rai.deleteDatabase",
+          "when": "view == similarityExplorer",
+          "group": "navigation@2"
         }
       ]
     },
@@ -51,6 +56,11 @@
         "command": "rai.analyzeSimilarity",
         "title": "Analyze",
         "icon": "$(rocket)"
+      },
+      {
+        "command": "rai.deleteDatabase",
+        "title": "Delete",
+        "icon": "$(trash)"
       }
     ]
   },
