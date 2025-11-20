@@ -3,7 +3,7 @@
   "displayName": "Rai",
   "publisher": "HichemDahi",
   "description": "Refactor ai",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.98.0"
   },
