@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import type { File, SimilarityResult } from "../types/types";
 
 // Function to split code into overlapping chunks
 export function splitCodeIntoChunks(code: string, chunkSize: number): string[] {
@@ -37,4 +38,49 @@ export function getFileModifiedDate(filePath: string): Date | null {
     console.error(`Error getting file stats for ${filePath}:`, error);
     return null;
   }
+}
+
+export function mergePairs(pairs: SimilarityResult[]) {
+  const clonePairs: SimilarityResult[] = JSON.parse(JSON.stringify(pairs));
+  for (let i = 0; i < clonePairs.length; i++) {
+    const list = clonePairs[i];
+    if (list.chunks.length <= 1) {
+      continue;
+    }
+    //take from pair2 to list
+    for (let j = i + 1; j < clonePairs.length; j++) {
+      const pair2 = clonePairs[j];
+      if (pair2.chunks.length !== 2) {
+        continue;
+      }
+      if (
+        pair2.chunks[0]?.id &&
+        list.chunks.map((c) => c.id).includes(pair2.chunks[0]?.id)
+      ) {
+        const chunk = pair2.chunks.pop();
+        if (chunk) {
+          list.chunks.push(chunk);
+        }
+      }
+      if (
+        pair2.chunks[1]?.id &&
+        list.chunks.map((c) => c.id).includes(pair2.chunks[1]?.id)
+      ) {
+        const chunk = pair2.chunks.shift();
+        if (chunk) {
+          list.chunks.push(chunk);
+        }
+      }
+    }
+  }
+
+  return clonePairs.filter((p) => p.chunks.length > 1);
+}
+
+export function isFileCached(
+  filepath: string,
+  filesDb: File[]
+): File | undefined {
+  const file = filesDb.find((f) => f.filepath === filepath);
+  return file;
 }
