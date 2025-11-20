@@ -2,12 +2,18 @@ import { PGlite, Transaction } from "@electric-sql/pglite";
 import { NodeFS } from "@electric-sql/pglite/nodefs";
 import { vector } from "@electric-sql/pglite/vector";
 import { Chunk, File, SimilarityResultQuery } from "../types/types.js";
+import * as vscode from "vscode";
+import { mkdirSync } from "fs";
 
 // Initialize PG Lite
 
-export function getDb() {
+export function getDb(context: vscode.ExtensionContext) {
+  const dbFolder = vscode.Uri.joinPath(context.globalStorageUri, "database");
+
+  // Ensure directory exists
+  mkdirSync(dbFolder.fsPath, { recursive: true });
   const db = new PGlite({
-    fs: new NodeFS("./database/"),
+    fs: new NodeFS(dbFolder.fsPath),
     extensions: { vector },
   });
 
