@@ -18,27 +18,32 @@ import { showOutput } from "./ui/ui";
 import { getFileModifiedDate, splitCodeIntoChunks } from "./utils/utils";
 import { generateEmbeddings } from "./model/model";
 import { Chunk, File, SimilarityResult } from "./types/types";
+import type { PGlite } from "@electric-sql/pglite";
 
 // Define the path to the database file
-const db = getDb();
+let db: PGlite;
 
 const similarityTreeDataProvider = new SimilarityTreeDataProvider();
-
 export async function activate(context: vscode.ExtensionContext) {
-  await migrate(db);
+  // Register Tree Data Provider
   vscode.window.registerTreeDataProvider(
     "similarityExplorer",
     similarityTreeDataProvider
   );
 
-  const disposable = vscode.commands.registerCommand(
-    "rai.analyzeSimilarity",
-    analyzeAllFiles
-  );
+  // Register commands
+  const subscriptions = [
+    vscode.commands.registerCommand("rai.analyzeSimilarity", () =>
+      analyzeAllFiles(context)
+    ),
+    vscode.commands.registerCommand("rai.openFile", openFile),
+    vscode.commands.registerCommand("rai.deleteDatabase", () =>
+      deleteDatabase(context)
+    ),
+  ];
 
-  vscode.commands.registerCommand("rai.openFile", openFile);
-
-  context.subscriptions.push(disposable);
+  // Add all disposables at once
+  context.subscriptions.push(...subscriptions);
 }
 
 exports.activate = activate;
@@ -47,13 +52,22 @@ function deactivate() {}
 
 let filesDb: File[];
 
-export async function analyzeAllFiles() {
+export async function analyzeAllFiles(context: vscode.ExtensionContext) {
+  // Initialize DB and run migrations
+  db = getDb(context);
+  await migrate(db);
   filesDb = await getFiles(db);
-  const files = await vscode.workspace.findFiles(
-    "**/*.{js,ts,vue}",
-    "**/{node_modules,*.d.ts,*.d.tsx}"
-  );
 
+  const allFiles = await vscode.workspace.findFiles(
+    "**/*.{js,ts,jsx,tsx,vue,html,css,scss,py,rb,php,java,kt,go,rs,c,cpp,h,cs,swift,m,mm,sh,bash,zsh,lua,r,scala,tsv}",
+    "**/node_modules/**"
+  );
+  const files = allFiles.filter(
+    (file) =>
+      !file.fsPath.endsWith(".d.ts") &&
+      !file.fsPath.includes(".test.") &&
+      !file.fsPath.includes(".spec.")
+  );
   if (files.length === 0) {
     vscode.window.showInformationMessage("No files found to analyze");
     return;
@@ -243,4 +257,32 @@ function mergePairs(pairs: SimilarityResult[]) {
 function isFileCached(filepath: string): File | undefined {
   const file = filesDb.find((f) => f.filepath === filepath);
   return file;
+}
+
+/**
+ * Deletes the PGlite database folder safely.
+ */
+async function deleteDatabase(context: vscode.ExtensionContext) {
+  const dbUri = vscode.Uri.joinPath(context.globalStorageUri, "database");
+
+  const confirm = await vscode.window.showWarningMessage(
+    "Are you sure you want to delete the PGlite database? This cannot be undone.",
+    { modal: true },
+    "Delete"
+  );
+
+  if (confirm !== "Delete") return;
+
+  try {
+    await vscode.workspace.fs.delete(dbUri, {
+      recursive: true,
+      useTrash: false,
+    });
+    vscode.window.showInformationMessage(
+      "✅ PGlite database deleted successfully."
+    );
+  } catch (err) {
+    console.error("Failed to delete PGlite database:", err);
+    vscode.window.showErrorMessage("❌ Failed to delete PGlite database.");
+  }
 }
