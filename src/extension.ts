@@ -3,8 +3,11 @@
 import * as vscode from "vscode";
 import * as path from "path";
 
-import { highlightSimilarLines, SimilarityTreeDataProvider } from "./ui/ui";
-
+import {
+  highlightSimilarLines,
+  SimilarityTreeDataProvider,
+  showOutput,
+} from "./ui/ui";
 import {
   calculateSimilarity,
   deleteEmbeddings,
@@ -14,17 +17,24 @@ import {
   migrate,
   upsertFile,
 } from "./pglite/pglite";
-import { showOutput } from "./ui/ui";
-import { getFileModifiedDate, splitCodeIntoChunks } from "./utils/utils";
+import {
+  getFileModifiedDate,
+  isFileCached,
+  mergePairs,
+  splitCodeIntoChunks,
+} from "./utils/utils";
 import { generateEmbeddings } from "./model/model";
-import { Chunk, File, SimilarityResult } from "./types/types";
+
+import type { Chunk, File } from "./types/types";
 import type { PGlite } from "@electric-sql/pglite";
 
-// Define the path to the database file
+let currentContext: vscode.ExtensionContext;
 let db: PGlite;
-
+let filesDb: File[];
 const similarityTreeDataProvider = new SimilarityTreeDataProvider();
+
 export async function activate(context: vscode.ExtensionContext) {
+  currentContext = context;
   // Register Tree Data Provider
   vscode.window.registerTreeDataProvider(
     "similarityExplorer",
@@ -49,8 +59,6 @@ export async function activate(context: vscode.ExtensionContext) {
 exports.activate = activate;
 
 function deactivate() {}
-
-let filesDb: File[];
 
 export async function analyzeAllFiles(context: vscode.ExtensionContext) {
   // Initialize DB and run migrations
@@ -178,7 +186,7 @@ async function openFile(chunk: Chunk) {
 async function analyzeFile(code: string, filepath: string) {
   try {
     // 1. if file doesn't exist or modified then analyze
-    const cachedFile = isFileCached(filepath);
+    const cachedFile = isFileCached(filepath, filesDb);
     const isAnalyze = !cachedFile || isModified(cachedFile);
 
     if (isAnalyze) {
@@ -217,48 +225,6 @@ function isModified(file: File) {
   }
 }
 
-function mergePairs(pairs: SimilarityResult[]) {
-  const clonePairs: SimilarityResult[] = JSON.parse(JSON.stringify(pairs));
-  for (let i = 0; i < clonePairs.length; i++) {
-    const list = clonePairs[i];
-    if (list.chunks.length <= 1) {
-      continue;
-    }
-    //take from pair2 to list
-    for (let j = i + 1; j < clonePairs.length; j++) {
-      const pair2 = clonePairs[j];
-      if (pair2.chunks.length !== 2) {
-        continue;
-      }
-      if (
-        pair2.chunks[0]?.id &&
-        list.chunks.map((c) => c.id).includes(pair2.chunks[0]?.id)
-      ) {
-        const chunk = pair2.chunks.pop();
-        if (chunk) {
-          list.chunks.push(chunk);
-        }
-      }
-      if (
-        pair2.chunks[1]?.id &&
-        list.chunks.map((c) => c.id).includes(pair2.chunks[1]?.id)
-      ) {
-        const chunk = pair2.chunks.shift();
-        if (chunk) {
-          list.chunks.push(chunk);
-        }
-      }
-    }
-  }
-
-  return clonePairs.filter((p) => p.chunks.length > 1);
-}
-
-function isFileCached(filepath: string): File | undefined {
-  const file = filesDb.find((f) => f.filepath === filepath);
-  return file;
-}
-
 /**
  * Deletes the PGlite database folder safely.
  */
@@ -266,7 +232,7 @@ async function deleteDatabase(context: vscode.ExtensionContext) {
   const dbUri = vscode.Uri.joinPath(context.globalStorageUri, "database");
 
   const confirm = await vscode.window.showWarningMessage(
-    "Are you sure you want to delete the PGlite database? This cannot be undone.",
+    "Are you sure you want to delete the data? This cannot be undone.",
     { modal: true },
     "Delete"
   );
@@ -285,4 +251,8 @@ async function deleteDatabase(context: vscode.ExtensionContext) {
     console.error("Failed to delete PGlite database:", err);
     vscode.window.showErrorMessage("❌ Failed to delete PGlite database.");
   }
+}
+
+export function getContext() {
+  return currentContext;
 }

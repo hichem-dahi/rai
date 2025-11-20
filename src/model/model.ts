@@ -1,11 +1,13 @@
-import type { DataArray } from "@xenova/transformers";
+import * as vscode from "vscode";
+import type {
+  DataArray,
+  FeatureExtractionPipeline,
+} from "@xenova/transformers";
 import type { Chunk } from "../types/types.js";
-
-type FeatureExtractionPipeline =
-  import("@xenova/transformers").FeatureExtractionPipeline;
+import { getContext } from "../extension.js";
 
 let pipelineInstance: FeatureExtractionPipeline | null = null;
-let hg: any = null; // Cache the imported module too
+let hg: typeof import("@xenova/transformers"); // Cache the imported module too
 
 export async function getFeatureExtractionPipeline() {
   if (!hg) {
@@ -14,10 +16,14 @@ export async function getFeatureExtractionPipeline() {
   }
 
   if (!pipelineInstance) {
-    pipelineInstance = (await hg.pipeline(
+    pipelineInstance = await hg.pipeline(
       "feature-extraction",
-      "Xenova/all-MiniLM-L6-v2"
-    )) as FeatureExtractionPipeline;
+      "Xenova/all-MiniLM-L6-v2",
+      {
+        cache_dir: vscode.Uri.joinPath(getContext().globalStorageUri, "models")
+          .fsPath,
+      }
+    );
   }
 
   return pipelineInstance;
